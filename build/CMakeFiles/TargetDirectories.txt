@@ -1,0 +1,3 @@
+/home/huan/git/minimalOpenGL/build/CMakeFiles/rebuild_cache.dir
+/home/huan/git/minimalOpenGL/build/CMakeFiles/edit_cache.dir
+/home/huan/git/minimalOpenGL/build/CMakeFiles/main.dir
