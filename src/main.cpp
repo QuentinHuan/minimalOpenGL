@@ -12,8 +12,6 @@ A minimal OpenGL Cmake project
 #include <glad/glad.h>
 #include <SDL2/SDL.h>
 
-#include <openvr/openvr.h>
-
 #include "shader.h"
 #include "mesh.h"
 
