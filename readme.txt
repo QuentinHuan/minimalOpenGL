@@ -9,6 +9,10 @@ sudo apt install libsdl2-dev
 #glew install command
 sudo apt-get install -y libglew-dev
 
+#assimp install
+sudo apt-get install -y libassimp-dev
+
+
 #############################
 ##      compilation
 #############################

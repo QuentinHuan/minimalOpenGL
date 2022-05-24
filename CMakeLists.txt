@@ -17,6 +17,10 @@ include_directories(${OPENGL_INCLUDE_DIRS})
 find_package(GLEW REQUIRED)
 include_directories(${GLEW_INCLUDE_DIRS})
 
+#find assimp
+find_package(ASSIMP REQUIRED)
+include_directories(${ASSIMP_INCLUDE_DIRS})
+
 #source directory
 file(GLOB SOURCES "src/*.c*")
 
@@ -25,4 +29,5 @@ add_executable(main ${SOURCES})
 target_link_libraries(main ${SDL2_LIBRARIES})
 target_link_libraries(main ${OPENGL_LIBRARIES})
 target_link_libraries(main ${GLEW_LIBRARIES})
+target_link_libraries(main ${ASSIMP_LIBRARIES})
 target_link_libraries(main ${CMAKE_DL_LIBS})
