@@ -9,6 +9,20 @@
 #include <sstream>
 #include <string>
 
+struct shader_scene_input{
+    glm::mat4 cam_projection, cam_view; // camera info
+    glm::vec3 cam_pos;
+    glm::vec3 light_pos; // light info
+    glm::vec3 light_ambient_c, light_diffuse_c, light_specular_c;
+};
+
+struct shader_model_input {
+    glm::mat4 model_transform, model_invtranspose_transform; // model info
+
+    glm::vec3 mat_albedo_c; // material info
+    float mat_metalness, mat_roughness;
+};
+
 class Shader {
 public:
     unsigned int ID;
@@ -41,7 +55,8 @@ public:
             vertexCode   = vShaderStream.str();
             fragmentCode = fShaderStream.str();
         } catch (std::ifstream::failure &e) {
-            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ" <<" --> file path:" << vertexPath << "; " << fragmentPath <<  std::endl;
+            std::cout << "ERROR::SHADER::FILE_NOT_SUCCESFULLY_READ"
+                      << " --> file path:" << vertexPath << "; " << fragmentPath << std::endl;
         }
         const char *vShaderCode = vertexCode.c_str();
         const char *fShaderCode = fragmentCode.c_str();
@@ -70,6 +85,31 @@ public:
     // activate the shader
     // ------------------------------------------------------------------------
     void use() const { glUseProgram(ID); }
+
+    void sendShader_scene_input(shader_scene_input In) {
+        use();
+        setMat4("projection", In.cam_projection);
+        setMat4("view", In.cam_view);
+        setVec3("viewPos", In.cam_pos);
+
+        // pass light infos
+        setVec3("light.position", In.light_pos);
+        setVec3("light.ambient", In.light_ambient_c);
+        setVec3("light.diffuse", In.light_diffuse_c);
+        setVec3("light.specular", In.light_specular_c);
+    }
+
+    void sendShader_model_input(shader_model_input In) {
+        use();
+        // pass model info
+        setMat4("model", In.model_transform);
+        setMat4("normalMatrix", In.model_invtranspose_transform);
+
+        // material tuning
+        setFloat("material.metalness", In.mat_metalness);
+        setFloat("material.roughness", In.mat_roughness);
+        setVec3("material.albedo", In.mat_albedo_c);
+    }
     // utility uniform functions
     // ------------------------------------------------------------------------
     void setBool(const std::string &name, bool value) const { glUniform1i(glGetUniformLocation(ID, name.c_str()), (int) value); }

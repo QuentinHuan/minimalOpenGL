@@ -114,16 +114,16 @@ void main() {
       1 * (1 * diffuse + 1 * specular) * NdotOmega * light.diffuse +
       (albedo * texture(IBL, SampleSphericalMap(reflect(v, n))).rgb * kd);
 
-  //------||
-  // test
-
-  // result = texture(IBL, SampleSphericalMap(reflect(v, n))).rgb;
-
-  // test
-  //------||
   result = result / (result + vec3(1.0));
   result = pow(result, vec3(1.0 / 2.2));
 
+  // //------||
+  // // test
+
+  // result = texture(IBL, SampleSphericalMap(reflect(v, n))).rgb;
+
+  // // test
+  // //------||
   FragColor = vec4(result.rgb, 1);
   // FragColor = vec4(texture(material.texture_roughness1, TexCoords).rgb, 1);
 };

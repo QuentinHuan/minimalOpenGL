@@ -34,12 +34,12 @@
 //--------------------------------------------------------
 // scene
 //--------------------------------------------------------
+
 // geometry
 float vertices[] = { -0.5f, -0.5f, 0.0f, 0.5f, -0.5f, 0.0f, 0.0f, 0.5f, 0.0f };
 double deltaTime = 0;
 
 // Mesh tri;
-// Shader shader1;
 Camera cam;
 glm::vec3 defaultCamPosition(0.0f, 0.0f, 10.0f);
 glm::vec3 lPosition         = glm::vec3(12.0f, 10.0f, 20.0f);
@@ -58,10 +58,33 @@ static void initialisation() {
 
     cam = Camera(defaultCamPosition);
 
-    // model         = Model("/home/huan/git/specular-manifold-sampling-AG/results/Test/meshes/panel_octave_004.obj");
-    model = Model("../ressources/monkeyHD.obj");
+    model = Model("/home/huan/git/specular-manifold-sampling-AG/results/Test/meshes/panel_octave_004.obj");
+    // model = Model("../ressources/monkeyHD.obj");
 
-    lambertShader = Shader("../shader/vertex.vs", "../shader/frag_PBR_Base.fs");
+    lambertShader = Shader("../shader/vertex.vs", "../shader/frag_PBR_IBL.fs");
+
+    // IBL
+    stbi_set_flip_vertically_on_load(true);
+    int width, height, nrComponents;
+    float *data = stbi_loadf("../ressources/IBL/Arches_E_PineTree/Arches_E_PineTree_Env.hdr", &width, &height, &nrComponents, 0);
+    unsigned int hdrTexture;
+    if (data) {
+        glActiveTexture(GL_TEXTURE0 + 0);
+        lambertShader.setInt("IBL", 0);
+        glGenTextures(1, &hdrTexture);
+        glBindTexture(GL_TEXTURE_2D, hdrTexture);
+        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB16F, width, height, 0, GL_RGB, GL_FLOAT, data);
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+        stbi_image_free(data);
+        glActiveTexture(GL_TEXTURE0);
+    } else {
+        std::cout << "Failed to load HDR image." << std::endl;
+    }
 }
 
 //-------------------------------------------------
@@ -76,17 +99,24 @@ static void input() {
     mouse_offsetX = 0;
     mouse_offsetY = 0;
 
-    const Uint8* kb = SDL_GetKeyboardState(NULL);
+    const Uint8 *kb = SDL_GetKeyboardState(NULL);
 
-    if(kb[SDL_SCANCODE_W] == 1) cam.ProcessKeyboard(FORWARD, deltaTime);
-    if(kb[SDL_SCANCODE_S] == 1) cam.ProcessKeyboard(BACKWARD, deltaTime);
-    if(kb[SDL_SCANCODE_A] == 1) cam.ProcessKeyboard(LEFT, deltaTime);
-    if(kb[SDL_SCANCODE_D] == 1) cam.ProcessKeyboard(RIGHT, deltaTime);
+    if (kb[SDL_SCANCODE_W] == 1)
+        cam.ProcessKeyboard(FORWARD, deltaTime);
+    if (kb[SDL_SCANCODE_S] == 1)
+        cam.ProcessKeyboard(BACKWARD, deltaTime);
+    if (kb[SDL_SCANCODE_A] == 1)
+        cam.ProcessKeyboard(LEFT, deltaTime);
+    if (kb[SDL_SCANCODE_D] == 1)
+        cam.ProcessKeyboard(RIGHT, deltaTime);
+    if (kb[SDL_SCANCODE_Q] == 1)
+        cam.ProcessKeyboard(UP, deltaTime);
+    if (kb[SDL_SCANCODE_E] == 1)
+        cam.ProcessKeyboard(DOWN, deltaTime);
 }
 
 static void mouse_callback() {
 
-    // Get mouse position
     int xpos, ypos;
     SDL_GetRelativeMouseState(&xpos, &ypos);
 
@@ -118,9 +148,6 @@ static void event() {
             case SDL_QUIT:
                 quit();
                 break;
-                // case SDL_MOUSEMOTION:
-                //     // mouse_callback();
-                //     break;
         }
     }
 }
@@ -128,53 +155,42 @@ static void event() {
 //-------------------------------------------------
 //                     UPDATE
 //-------------------------------------------------
-static void update() { // update camera
-    // cam.updateCameraVectors();
+static void update() {
 
     glm::mat4 projection = glm::perspective(glm::radians(cam.Zoom), (float) windowWidth / (float) windowHeight, 0.1f, 100.0f);
     glm::mat4 view       = cam.GetViewMatrix();
 
-    // for(int i=0;i<4;i++){
-    //   for(int j=0;j<4;j++){
+    // Scene --> shader
+    shader_scene_input shader_scene_input;
+    shader_scene_input.cam_projection   = projection;
+    shader_scene_input.cam_view         = view;
+    shader_scene_input.cam_pos          = cam.Position;
+    shader_scene_input.light_pos        = lPosition;
+    shader_scene_input.light_ambient_c  = glm::vec3(0.05f, 0.05f, 0.05f);
+    shader_scene_input.light_specular_c = glm::vec3(1.0f, 1.0f, 1.0f);
+    shader_scene_input.light_diffuse_c  = glm::vec3(1.0f, 1.0f, 1.0f);
 
-    //     std::cout << view[i][j] << ", ";
-    //   }
-    //   std::cout << std::endl << std::endl;
-    // }
+    lambertShader.sendShader_scene_input(shader_scene_input);
 
-    // send camera date to shaders
-    lambertShader.use();
-
-    lambertShader.setMat4("projection", projection);
-    lambertShader.setMat4("view", view);
-    lambertShader.setVec3("viewPos", cam.Position);
-
-    // pass light infos
-    lambertShader.setVec3("light.position", lPosition);
-    lambertShader.setVec3("light.ambient", glm::vec3(0.05f, 0.05f, 0.05f));
-    lambertShader.setVec3("light.diffuse", glm::vec3(2.0f, 2.0f, 2.0f));
-    lambertShader.setVec3("light.specular", glm::vec3(1.0f, 1.0f, 1.0f));
-
-
-    // material tuning
-    lambertShader.setFloat("material.metalness", 1.0f);
-    lambertShader.setFloat("material.roughness", 0.2);
-    lambertShader.setVec3("material.albedo", glm::vec3(0.50f, 1.0f, 1.0f));
-
-    // render the loaded model
+    // Model --> shader
     glm::mat4 modelMat = glm::mat4(1.0f);
-    // model = glm::rotate(model, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f,
-    // 0.0f));
-    modelMat = glm::rotate(modelMat, float(glm::radians(-3.0f)), glm::vec3(0.0f, 1.0f, 0.0f));
-    modelMat = glm::translate(modelMat, glm::vec3(0.0f, 0.0f,
-                                                  0.0f)); // translate it down so it's at the center of the scene
-    modelMat = glm::scale(modelMat, glm::vec3(0.50f, 0.50f,
-                                              0.50f)); // it's a bit too big for our scene, so scale it down
+    modelMat           = glm::rotate(modelMat, glm::radians(-90.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+    modelMat = glm::translate(modelMat, glm::vec3(0.0f, 0.0f, 0.0f)); 
+    modelMat = glm::scale(modelMat, glm::vec3(0.50f, 0.50f, 0.50f));  
 
     glm::mat3 normalMatrix = glm::inverseTranspose(glm::mat3(modelMat));
 
     lambertShader.setMat4("model", modelMat);
     lambertShader.setMat4("normalMatrix", normalMatrix);
+
+    shader_model_input shader_model_input;
+    shader_model_input.model_transform              = modelMat;
+    shader_model_input.model_invtranspose_transform = normalMatrix;
+    shader_model_input.mat_albedo_c                 = glm::vec3(0.50f, 1.0f, 1.0f);
+    shader_model_input.mat_metalness                = 0.1f;
+    shader_model_input.mat_roughness                = 0.6f;
+
+    lambertShader.sendShader_model_input(shader_model_input);
 }
 
 //-------------------------------------------------
@@ -182,6 +198,9 @@ static void update() { // update camera
 //-------------------------------------------------
 static void draw(SDL_Window *window) { model.draw(lambertShader); }
 
+//-------------------------------------------------
+//                     MAIN
+//-------------------------------------------------
 int main(int argc, char *argv[]) {
 
     initialisation();
